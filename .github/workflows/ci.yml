@@ -9,9 +9,10 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
-  build-test-publish:
+  build-test-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -35,10 +36,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Set up Docker Buildx
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/setup-buildx-action@v3
-
       - name: Build and push Docker image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v6
@@ -48,3 +45,40 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/ci-cd-app:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/ci-cd-app:${{ github.sha }}
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Google Cloud CLI
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install GKE authentication plugin
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+
+      - name: Connect to GKE
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          gcloud container clusters get-credentials \
+            "${{ vars.GKE_CLUSTER }}" \
+            --region "${{ vars.GKE_LOCATION }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}"
+
+      - name: Apply Kubernetes manifests
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: kubectl apply -f k8s/
+
+      - name: Deploy the new image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          kubectl set image deployment/ci-cd-app \
+            ci-cd-app=${{ secrets.DOCKERHUB_USERNAME }}/ci-cd-app:${{ github.sha }}
+          kubectl rollout status deployment/ci-cd-app --timeout=180s
+          kubectl get pods
