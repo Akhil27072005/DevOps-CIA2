@@ -34,7 +34,7 @@ class HelloControllerIntegrationTest {
 
         assertEquals(200, response.statusCode());
         assertEquals(
-                "Hello! CI/CD Pipeline Application is Running.",
+                "Hello! CI/CD Pipeline Application is Running. A change was made",
                 response.body()
         );
     }
