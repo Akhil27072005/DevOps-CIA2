@@ -1,0 +1,21 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ci-cd-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ci-cd-app
+  template:
+    metadata:
+      labels:
+        app: ci-cd-app
+    spec:
+      containers:
+        - name: ci-cd-app
+          image: akhilcd27/ci-cd-app:1.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
