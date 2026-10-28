@@ -58,6 +58,11 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Install GKE authentication plugin
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+
       - name: Connect to GKE
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
