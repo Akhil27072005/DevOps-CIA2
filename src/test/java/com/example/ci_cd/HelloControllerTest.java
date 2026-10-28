@@ -13,7 +13,7 @@ class HelloControllerTest {
         String response = controller.hello();
 
         assertEquals(
-            "Hello! CI/CD Pipeline Application is Running.",
+            "Hello! CI/CD Pipeline Application is Running. A change was made",
             response
         );
     }
